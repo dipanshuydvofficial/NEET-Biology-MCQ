@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    function isRequestOwner() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidQuestion(data) {
+      return data.keys().hasAll(['question', 'options', 'correctAnswer', 'chapter', 'difficulty']) &&
+             data.question is string && data.question.size() > 0 && data.question.size() < 2000 &&
+             data.options is list && data.options.size() == 4 &&
+             data.correctAnswer is string &&
+             data.chapter is string &&
+             data.difficulty in ['Easy', 'Medium', 'Hard'];
+    }
+
+    function isValidProgress(data) {
+      return data.keys().hasAll(['userId', 'questionId', 'isCorrect', 'attemptedAt']) &&
+             data.userId == request.auth.uid &&
+             data.questionId is string &&
+             data.isCorrect is bool;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    match /questions/{questionId} {
+      allow read: if isAuthenticated();
+      // Allow authenticated users to create questions (cached from AI)
+      allow create: if isAuthenticated() && isValidQuestion(request.resource.data);
+      allow update: if false; // Questions are immutable once created
+      allow delete: if false;
+    }
+
+    match /userProgress/{progressId} {
+      allow read: if isDocOwner();
+      allow create: if isRequestOwner() && isValidProgress(request.resource.data);
+      allow update: if false;
+      allow delete: if isDocOwner();
+    }
+
+    match /mistakes/{mistakeId} {
+      allow read: if isDocOwner();
+      allow create: if isRequestOwner();
+      allow update: if false;
+      allow delete: if isDocOwner();
+    }
+  }
+}

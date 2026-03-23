@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile and progress statistics.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "dailyGoal": { "type": "integer", "description": "Target number of questions per day." },
+        "streak": { "type": "integer" },
+        "lastAttemptedAt": { "type": "string", "format": "date-time" },
+        "totalQuestions": { "type": "integer" },
+        "correctQuestions": { "type": "integer" }
+      },
+      "required": ["name", "email", "createdAt"]
+    },
+    "Question": {
+      "title": "MCQ Question",
+      "description": "Stores AI-generated Biology MCQs.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "correctAnswer": { "type": "string" },
+        "explanation": { "type": "string" },
+        "chapter": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Hard"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["question", "options", "correctAnswer", "chapter", "difficulty"]
+    },
+    "UserProgress": {
+      "title": "User Progress Record",
+      "description": "Tracks individual question attempts by users.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "questionId": { "type": "string" },
+        "isCorrect": { "type": "boolean" },
+        "attemptedAt": { "type": "string", "format": "date-time" },
+        "chapter": { "type": "string" }
+      },
+      "required": ["userId", "questionId", "isCorrect", "attemptedAt"]
+    },
+    "Mistake": {
+      "title": "User Mistake",
+      "description": "Stores questions answered incorrectly for re-practice.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "questionId": { "type": "string" },
+        "attemptedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "questionId", "attemptedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and stats."
+    },
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "AI-generated questions library."
+    },
+    "/userProgress/{progressId}": {
+      "schema": "UserProgress",
+      "description": "History of all question attempts."
+    },
+    "/mistakes/{mistakeId}": {
+      "schema": "Mistake",
+      "description": "Questions to be retried."
+    }
+  }
+}
